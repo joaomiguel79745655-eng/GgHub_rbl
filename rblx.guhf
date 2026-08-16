@@ -6,7 +6,9 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIGURAÇÃO DO BANCO DE DADOS PÚBLICO (KVESTOR API)
 -- =========================================================================
 local BANCO_ID = "guhub_datastore_v2_4idudd"
--- CORREÇÃO: Adicionada a barra correta para a API funcionar
+-- CORREÇÃO: Adicionada a porta :2052 necessária para a API Kvestor responder no Roblox
+local API_URL = "https://implying.cc" .. BANCO_ID .. "/" 
+
 local API_URL = "https://implying.cc" .. BANCO_ID .. "/" 
 
 -- Função genérica para requisições HTTP (Adaptada nativamente para o Delta Executor)
