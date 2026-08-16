@@ -56,16 +56,17 @@ if deveBloquear then
 end
 
 -- =========================================================================
--- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - ESTÁVEL NO DELTA
+-- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - LINK RAW CORRETO DO REPOSITÓRIO
 -- =========================================================================
-local Fluent = loadstring(game:HttpGet("https://github.com"))()
+-- CORREÇÃO CRÍTICA: Mudado de '/main/' para '/master/' (Onde o arquivo realmente existe no GitHub)
+local Fluent = loadstring(game:HttpGet("https://githubusercontent.com"))()
 
 local Window = Fluent:CreateWindow({
     Title = "GuHub 🚀",
     SubTitle = "by 4idudd & nadahavem",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Acrylic = true,
+    Acrylic = false, -- Desativado o desfoque para evitar queda de FPS no celular
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
@@ -89,7 +90,6 @@ Tab1:AddInput("InputAlvo", {
             local palavras = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
             local senhaAleatoria = palavras[math.random(1, #palavras)] .. math.random(100, 999)
             
-            -- Notificação na Fluent Lib
             Fluent:Notify({
                 Title = "Alvo: " .. username,
                 Content = "Senha Gerada: " .. senhaAleatoria,
@@ -114,7 +114,6 @@ end)
 if eDono then
     local TabAdmin = Window:AddTab({ Title = "👑 Gerenciamento", Icon = "user" })
     
-    -- Função interna para criar os botões interativos de moderação na Fluent
     local function criarBotoesPainel(jogador)
         if donosDoScript[jogador.Name] then return end
         
@@ -135,7 +134,7 @@ if eDono then
         TabAdmin:AddButton({
             Title = "🔄 Renovar/Liberar: " .. jogador.Name,
             Callback = function()
-                shared.GuHub_Usuarios[nomeAlvo] = os.time() -- Reseta o cronômetro para +7 dias
+                shared.GuHub_Usuarios[nomeAlvo] = os.time()
                 Fluent:Notify({
                     Title = "GuHub Admin",
                     Content = "Acesso de " .. jogador.Name .. " renovado por +7 dias!",
@@ -145,14 +144,11 @@ if eDono then
         })
     end
 
-    -- Gera botões para quem já está na sala
     for _, jogador in ipairs(Players:GetPlayers()) do
         criarBotoesPainel(jogador)
     end
 
-    -- Gera botões automaticamente para quem entrar depois
     Players.PlayerAdded:Connect(criarBotoesPainel)
 end
 
--- Inicializa a janela da Fluent
 Window:SelectTab(1)
