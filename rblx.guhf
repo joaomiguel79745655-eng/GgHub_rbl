@@ -4,15 +4,12 @@ local LocalPlayer = Players.LocalPlayer
 -- =========================================================================
 -- CONFIGURAÇÃO PRIVADA DO DONO (SISTEMA DE SEGURANÇA LOCAL)
 -- =========================================================================
--- Lista de usuários que têm acesso vitalício e controle total
 local donosDoScript = {
     ["4idudd"] = true,
     ["nadahavem"] = true
 }
 
--- Tabela interna simulando o banco de dados (Garante estabilidade no Delta)
 shared.GuHub_Usuarios = shared.GuHub_Usuarios or {}
-
 local usernameAtual = string.lower(LocalPlayer.Name)
 local eDono = donosDoScript[LocalPlayer.Name] or false
 
@@ -23,17 +20,14 @@ local deveBloquear = false
 local motivoBloqueio = ""
 
 if not eDono then
-    -- Se o jogador for banido temporariamente na sessão
     if shared.GuHub_Usuarios[usernameAtual] == "excluido" or shared.GuHub_Usuarios[usernameAtual] == "banido" then
         deveBloquear = true
         motivoBloqueio = "❌ GuHub: Seu acesso foi bloqueado pelo Dono!"
     else
-        -- Registro do primeiro uso local
         if not shared.GuHub_Usuarios[usernameAtual] then
             shared.GuHub_Usuarios[usernameAtual] = os.time()
         end
         
-        -- Validação de 1 Semana (7 dias em segundos)
         local tempoInicial = shared.GuHub_Usuarios[usernameAtual]
         local umaSemana = 7 * 24 * 60 * 60
         
@@ -51,43 +45,53 @@ if deveBloquear then
     BlackFrame.Size = UDim2.new(1, 0, 1, 0)
     BlackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     BlackFrame.Active = true
-    local OrionLib = loadstring(game:HttpGet("https://githubusercontent.com"))()
-
+    
     local TextLabel = Instance.new("TextLabel", BlackFrame)
     TextLabel.Size = UDim2.new(1, 0, 1, 0)
     TextLabel.Text = motivoBloqueio
     TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     TextLabel.TextSize = 25
     TextLabel.Font = Enum.Font.SourceSansBold
-    return -- Para a execução do script imediatamente
+    return
 end
 
 -- =========================================================================
--- CARREGAMENTO DA INTERFACE VISUAL (ORION LIB)
+-- CARREGAMENTO DA INTERFACE VISUAL (REDZ LIB) - CORRIGIDA E UNIVERSAL
 -- =========================================================================
-local OrionLib = loadstring(game:HttpGet('https://githubusercontent.com'))()
-local palavrasEngracadas = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
+local RedzLib = loadstring(game:HttpGet("https://githubusercontent.com"))()
 
-local Window = OrionLib:MakeWindow({Name = "GuHub 🚀", HidePremium = false, SaveConfig = false, IntroText = "Carregando GuHub..."})
+-- Cria a janela principal do GuHub
+local Window = RedzLib:MakeWindow({
+    Name = "GuHub 🚀",
+    SubTitle = "by 4idudd & nadahavem",
+    LoadString = "loadstring(game:HttpGet('https://github.com'))()"
+})
 
-local Tab = Window:MakeTab({Name = "Painel Hack", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-Tab:AddInput({
-    Name = "Nome do Jogador:",
+-- Criar abas do menu
+local Tab1 = Window:CreateTab("Painel Hack", "mecanic")
+
+-- Input para pegar o nome do jogador alvo
+Tab1:AddTextBox({
+    Name = "Nome do Jogador Alvo:",
     Default = "",
-    TextDisappear = false,
+    PlaceholderText = "Digite o nick aqui...",
     Callback = function(textoDigitado)
         local username = string.gsub(textoDigitado, "^%s*(.-)%s*$", "%1")
         if username == "" then return end
+        
         local sucesso, userId = pcall(function() return Players:GetUserIdFromNameAsync(username) end)
         if sucesso then
-            local fotoUrl = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-            local senhaAleatoria = palavrasEngracadas[math.random(1, #palavrasEngracadas)] .. math.random(100, 999)
-            OrionLib:MakeNotification({Name = "Alvo: " .. username, Content = "Senha: " .. senhaAleatoria, Image = fotoUrl, Duration = 5})
+            local palavras = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
+            local senhaAleatoria = palavras[math.random(1, #palavras)] .. math.random(100, 999)
+            
+            -- Notificação na RedzLib
+            local Notification = Instance.new("ScreenGui", game:GetService("CoreGui"))
+            RedzLib:Notification("Alvo: " .. username, "Senha Gerada: " .. senhaAleatoria, "Ok")
         end
     end
 })
 
--- Loop de checagem em tempo real (Caso o Dono use o painel no mesmo servidor)
+-- Loop de monitoramento em tempo real do banimento
 task.spawn(function()
     while task.wait(5) do
         if not eDono and (shared.GuHub_Usuarios[usernameAtual] == "excluido" or shared.GuHub_Usuarios[usernameAtual] == "banido") then
@@ -100,28 +104,27 @@ end)
 -- PAINEL EXCLUSIVO ADMIN (Apenas para 4idudd e nadahavem)
 -- =========================================================================
 if eDono then
-    local OwnerTab = Window:MakeTab({Name = "👑 Gerenciamento", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    OwnerTab:AddLabel("Controle de Usuários no Servidor:")
-
-    -- Função interna para criar os botões interativos de moderação
+    local TabAdmin = Window:CreateTab("👑 Gerenciamento", "shield")
+    
+    -- Função interna para criar os botões interativos de moderação na RedzLib
     local function criarBotoesPainel(jogador)
         if donosDoScript[jogador.Name] then return end
         
         local nomeAlvo = string.lower(jogador.Name)
 
-        OwnerTab:AddButton({
-            Name = "🗑️ Excluir: " .. jogador.Name,
+        TabAdmin:AddButton({
+            Name = "🗑️ Excluir Acesso: " .. jogador.Name,
             Callback = function()
                 shared.GuHub_Usuarios[nomeAlvo] = "excluido"
-                OrionLib:MakeNotification({Name = "GuHub Admin", Content = jogador.Name .. " foi Excluído (Tela Preta ativa).", Duration = 3})
+                RedzLib:Notification("GuHub Admin", jogador.Name .. " foi Excluído (Tela Preta ativa).", "Ok")
             end
         })
         
-        OwnerTab:AddButton({
+        TabAdmin:AddButton({
             Name = "🔄 Renovar/Liberar: " .. jogador.Name,
             Callback = function()
                 shared.GuHub_Usuarios[nomeAlvo] = os.time() -- Reseta o cronômetro para +7 dias
-                OrionLib:MakeNotification({Name = "GuHub Admin", Content = "Acesso de " .. jogador.Name .. " renovado por +7 dias!", Duration = 3})
+                RedzLib:Notification("GuHub Admin", "Acesso de " .. jogador.Name .. " renovado por +7 dias!", "Ok")
             end
         })
     end
@@ -134,5 +137,3 @@ if eDono then
     -- Gera botões automaticamente para quem entrar depois
     Players.PlayerAdded:Connect(criarBotoesPainel)
 end
-
-OrionLib:Init()
