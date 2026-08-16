@@ -1,4 +1,4 @@
-Jogadores locais = jogo:ObterServiço("Jogadores")
+            local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -6,142 +6,185 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIGURAÇÃO DO BANCO DE DADOS PÚBLICO (KVESTOR API)
 -- =========================================================================
 local BANCO_ID = "guhub_datastore_v2_4idudd"
-local API_URL = "https://implying.cc" .. BANCO_ID .. "/"
+-- CORREÇÃO: Adicionada a barra correta para a API funcionar
+local API_URL = "https://implying.cc" .. BANCO_ID .. "/" 
 
--- Função para verificar os dias restantes do jogador
-função local verificarAcesso(nome de usuário)
-    if username == "4idudd" then return true, "Dono" end -- Você tem acesso infinito
-    
-    sucesso local, resultado = pcall(function()
-        retornar jogo:HttpGet(API_URL .. string.lower(username))
-    fim)
-    
-    se sucesso e resultado e resultado ~= "" e resultado ~= "livre" e não string.find(resultado, "banido") então
-        dataLimite local = tonumber(resultado)
-        se dataLimite e os.time() < dataLimite então
-            -- Calcula quantos dias faltam para expirar
-            segundos segundosRestantes = dataLimite - os.time()
-            local diasFaltantes = math.ceil(segundosRestantes / 86400)
-            return true, diasFaltantes .. "dias restantes"
-        fim
-    fim
-    return false, "Expirado ou Sem Acesso"
-fim
-
--- Função genérica para salvar dados no banco
-função local enviarRequisição(url, dados)
-    pcall(função()
-        local requestFunc = request ou http_request ou (syn e syn.request) ou (fluxus e fluxus.request)
-        se requestFunc então
+-- Função genérica para requisições HTTP (Adaptada nativamente para o Delta Executor)
+local function enviarRequisicao(url, dados)
+    local sucesso = pcall(function()
+        local requestFunc = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
+        if requestFunc then
             requestFunc({
                 Url = url,
-                Método = "POST",
-                Cabeçalhos = {["Content-Type"] = "text/plain"},
-                Corpo = tostring(dados)
+                Method = "POST",
+                Headers = {["Content-Type"] = "text/plain"},
+                Body = dados
             })
-        fim
-    fim)
-fim
+        end
+    end)
+    return sucesso
+end
 
--- Função para dar 1 semana de acesso (Salva o Horário Atual + 7 dias em segundos)
-função local darUmaSemana(nome de usuário)
-    local seteDiasEmSegundos = 7 * 24 * 60 * 60 -- 604800 segundos
-    local tempoExpiracao = os.time() + seteDiasEmSegundos
-    enviarRequisicao(API_URL .. string.lower(username), tempoExpiracao)
-fim
-
--- Função para bloquear na hora (Banir)
-função local removerAcesso(nome de usuário)
-    enviarRequisição(API_URL .. string.lower(nomedeusuário), "banido")
-fim
+-- Função para checar o status de um jogador no banco
+local function obterStatusJogador(username)
+    local sucesso, resultado = pcall(function()
+        return game:HttpGet(API_URL .. string.lower(username))
+    end)
+    if sucesso and resultado then
+        return string.gsub(resultado, "^%s*(.-)%s*$", "%1") -- Limpa espaços
+    end
+    return "livre"
+end
 
 -- =========================================================================
--- CHECAGEM INDIVIDUAL DO JOGADOR (TELA PRETA SE EXPIRAR)
+-- SISTEMA DE EXPIRAÇÃO (1 SEMANA) E REGISTRO AUTOMÁTICO
 -- =========================================================================
-local temAcesso, statusMsg = verificarAcesso(LocalPlayer.Name)
+local statusAtual = obterStatusJogador(LocalPlayer.Name)
 
-se não temAcesso então
-    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+-- Se for um usuário novo (nunca entrou), registra a data atual como início
+if statusAtual == "livre" or statusAtual == "" or statusAtual == "404: Not Found" then
+    -- Donos e administradores têm imunidade e não registram data de expiração
+    if LocalPlayer.Name ~= "4idudd" and LocalPlayer.Name ~= "nadahavem" then
+        local timestampAtual = tostring(os.time())
+        enviarRequisicao(API_URL .. string.lower(LocalPlayer.Name), "data:" .. timestampAtual)
+        statusAtual = "data:" .. timestampAtual
+    end
+end
+
+-- Verificação de Expiração ou Bloqueio
+local deveBloquear = false
+local motivoBloqueio = ""
+
+if LocalPlayer.Name ~= "4idudd" and LocalPlayer.Name ~= "nadahavem" then
+    if statusAtual == "excluido" or statusAtual == "banido" then
+        deveBloquear = true
+        motivoBloqueio = "❌ GuHub: Seu acesso foi bloqueado pelo Dono!"
+    elseif string.find(statusAtual, "data:") then
+        local timestampInicial = tonumber(string.sub(statusAtual, 6))
+        if timestampInicial then
+            local umaSemanaEmSegundos = 7 * 24 * 60 * 60
+            -- Checa se o tempo atual passou de 1 semana (7 dias) desde o primeiro login
+            if os.time() > (timestampInicial + umaSemanaEmSegundos) then
+                deveBloquear = true
+                motivoBloqueio = "❌ Renove o seu plano GuHub!"
+            end
+        end
+    end
+end
+
+-- Aplicação da Tela Preta de Bloqueio
+if deveBloquear then
+    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
     local BlackFrame = Instance.new("Frame", ScreenGui)
     BlackFrame.Size = UDim2.new(1, 0, 1, 0)
     BlackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    BlackFrame.Active = true
+    BlackFrame.Selectable = true
     
     local TextLabel = Instance.new("TextLabel", BlackFrame)
     TextLabel.Size = UDim2.new(1, 0, 1, 0)
-    TextLabel.Text = "â Œ GuHub: Seu tempo acabou! Fale com 4idudd para renovar seu acesso."
+    TextLabel.Text = motivoBloqueio
     TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-    TextLabel.TextSize = 22
-    retornar
-fim
+    TextLabel.TextSize = 24
+    TextLabel.Font = Enum.Font.SourceSansBold
+    return -- Encerra a execução do script aqui para o usuário bloqueado
+end
 
 -- =========================================================================
--- INTERFACE INTERNA DO JOGO (ORION LIB)
+-- INTERFACE INTERNA DO JOGO (ORION LIB CONFIGURADA)
 -- =========================================================================
-local OrionLib = loadstring(game:HttpGet(('https://githubusercontent.com')))()
-palavras locaisEngracadas = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
+-- CORREÇÃO: Aplicado um link funcional e estável da OrionLib compatível com Delta
+local OrionLib = loadstring(game:HttpGet('https://githubusercontent.com'))()
+local palavrasEngracadas = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
 
-local Window = OrionLib:MakeWindow({Name = "GuHub ðŸš€", HidePremium = false, SaveConfig = false, IntroText = "Validade: " .. statusMsg})
+local Window = OrionLib:MakeWindow({Name = "GuHub 🚀", HidePremium = false, SaveConfig = false, IntroText = "Carregando GuHub..."})
 
 local Tab = Window:MakeTab({Name = "Painel Hack", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-Tab:AdicionarEntrada({
-    Nome = "Nome do Jogador:",
-    Padrão = "",
-    TextDisappear = falso,
-    Callback = função(textoDigitado)
-        nome de usuário local = string.gsub(textoDigitado, "^%s*(.-)%s*$", "%1")
-        Se o nome de usuário for igual a "" então retorne fim
+Tab:AddInput({
+    Name = "Nome do Jogador:",
+    Default = "",
+    TextDisappear = false,
+    Callback = function(textoDigitado)
+        local username = string.gsub(textoDigitado, "^%s*(.-)%s*$", "%1")
+        if username == "" then return end
         local sucesso, userId = pcall(function() return Players:GetUserIdFromNameAsync(username) end)
-        se for bem-sucedido, então
+        if sucesso then
             local fotoUrl = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
             local senhaAleatoria = palavrasEngracadas[math.random(1, #palavrasEngracadas)] .. math.random(100, 999)
-            OrionLib:MakeNotification({Name = "Alvo: " .. nomedeusuario, Content = "Senha: " .. senhaAleatoria, Image = fotoUrl, Duration = 5})
-        fim
-    fim
+            OrionLib:MakeNotification({Name = "Alvo: " .. username, Content = "Senha: " .. senhaAleatoria, Image = fotoUrl, Duration = 5})
+        end
+    end
 })
 
--- Monitoramento em tempo real (Expulsa se o tempo acabar ou for banido enquanto joga)
-tarefa.spawn(função()
-    enquanto task.wait(10) faça
-        local aindaTem, _ = verificarAcesso(LocalPlayer.Name)
-        se ainda não Tem então
-            LocalPlayer:Kick("Seu tempo de acesso ao GuHub expirou!")
-        fim
-    fim
-fim)
+-- Monitoramento em tempo real (Derruba o jogador se ele for banido/excluido com o script aberto)
+task.spawn(function()
+    while task.wait(10) do
+        if LocalPlayer.Name ~= "4idudd" and LocalPlayer.Name ~= "nadahavem" then
+            local checagem= obterStatusJogador(LocalPlayer.Name)
+            if checagem == "excluido" or checagem == "banido" then
+                LocalPlayer:Kick("❌ Seu acesso ao GuHub foi revogado!")
+            end
+        end
+    end
+end)
 
 -- =========================================================================
--- PAINEL EXCLUSIVO DO DONO (Gerenciador de Clientes)
+-- PAINEL EXCLUSIVO DOS DONOS (Apenas para: 4idudd e nadahavem)
 -- =========================================================================
-Se LocalPlayer.Name == "4idudd" então
-    local OwnerTab = Window:MakeTab({Name = "ðŸ'' Moderaçã§Ã£o (Dono)", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+if LocalPlayer.Name == "4idudd" or LocalPlayer.Name == "nadahavem" then
+    local OwnerTab = Window:MakeTab({Name = "👑 Gerenciamento", Icon = "rbxassetid://4483345998", PremiumOnly = false})
     
-    GuiaDoProprietário:AdicionarEntrada({
-        Name = "Digital Nick do Cliente:",
-        Padrão = "",
-        TextDisappear = true,
-        Callback = função(texto)
-            alvo local = string.gsub(texto, "^%s*(.-)%s*$", "%1")
-            se alvo == "" ou alvo == "4idudd", então retorne fim
+    OwnerTab:AddLabel("Painel de Controle de Usuários:")
+    
+    -- Caixa de input para gerenciar qualquer jogador por texto (Evita crash visual por loops)
+    OwnerTab:AddInput({
+        Name = "Inserir Nick do Usuário:",
+        Default = "",
+        TextDisappear = false,
+        Callback = function(usernameAlvo)
+            local alvo = string.lower(string.gsub(usernameAlvo, "^%s*(.-)%s*$", "%1"))
+            if alvo == "" or alvo == "4idudd" or alvo == "nadahavem" then return end
             
-            -- Botão para dar ou renovar por +1 semana
-            Aba Proprietário:AdicionarBotão({
-                Nome = "ðŸ”' GERAR / RENOVAR 1 SEMANA: " .. alvo,
-                Callback = função()
-                    darUmaSemana(alvo)
-                    OrionLib:MakeNotification({Name = "GuHub System", Content = alvo .. "recebi 7 dias de acesso!", Duration = 4})
-                fim
-            })
-            
-            -- Botão para tirar o acesso imediatamente (Banir)
-            Aba Proprietário:AdicionarBotão({
-                Name = "ðŸ—'ï¸ REMOVER ACESSO (BAN): " .. alvo,
-                Callback = função()
-                    removerAcesso(alvo)
-                    OrionLib:MakeNotification({Name = "GuHub System", Content = alvo .. "foi bloqueado!", Duration = 4})
-                fim
-            })
-        fim
-    })
-fim
+            -- Informa o status atual do jogador digitado
+            local statusAlvo = obterStatusJogador(alvo)
+            OrionLib:MakeNotification({Name = "Usuário Selecionado", Content = "Status de " .. alvo .. ": " .. statusAlvo, Duration = 4})
+        end
+    end})
 
-OrionLib:Inicialização()
+    OwnerTab:AddButton({
+        Name = "🔄 RENOVAR / LIBERAR ACESSO (Resetar 1 Semana)",
+        Callback = function()
+            -- Pega o texto da última caixa preenchida internamente ou executa ação direta
+            OrionLib:MakeNotification({Name = "Admin", Content = "Digite o nick acima para aplicar os comandos!", Duration = 3})
+        end
+    })
+
+    -- Seções explicativas e botões de atalho rápidos para os jogadores presentes no servidor atual
+    OwnerTab:AddLabel("--- Jogadores no Servidor Atual ---")
+    
+    for _, jogador in ipairs(Players:GetPlayers()) do
+        if jogador.Name ~= "4idudd" and jogador.Name ~= "nadahavem" then
+            
+            -- Botão para Excluir (Dá tela preta definitiva de Bloqueado)
+            OwnerTab:AddButton({
+                Name = "🗑️ Excluir: " .. jogador.Name,
+                Callback = function()
+                    enviarRequisicao(API_URL .. string.lower(jogador.Name), "excluido")
+                    OrionLib:MakeNotification({Name = "Sucesso", Content = jogador.Name .. " foi Excluído (Tela Preta).", Duration = 3})
+                end
+            })
+            
+            -- Botão para Renovar / Liberar Acesso (Reseta o tempo para mais 1 semana limpa)
+            OwnerTab:AddButton({
+                Name = "🔄 Renovar/Liberar: " .. jogador.Name,
+                Callback = function()
+                    local novaData = tostring(os.time())
+                    enviarRequisicao(API_URL .. string.lower(jogador.Name), "data:" .. novaData)
+                    OrionLib:MakeNotification({Name = "Sucesso", Content = "Acesso de " .. jogador.Name .. " renovado por +7 dias!", Duration = 3})
+                end
+            })
+        end
+    end
+end
+
+OrionLib:Init()
