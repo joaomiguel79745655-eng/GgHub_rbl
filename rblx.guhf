@@ -56,25 +56,30 @@ if deveBloquear then
 end
 
 -- =========================================================================
--- CARREGAMENTO DA INTERFACE VISUAL (REDZ LIB) - CORRIGIDA E UNIVERSAL
+-- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - ESTÁVEL NO DELTA
 -- =========================================================================
-local RedzLib = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local Fluent = loadstring(game:HttpGet("https://github.com"))()
 
--- Cria a janela principal do GuHub
-local Window = RedzLib:MakeWindow({
-    Name = "GuHub 🚀",
+local Window = Fluent:CreateWindow({
+    Title = "GuHub 🚀",
     SubTitle = "by 4idudd & nadahavem",
-    LoadString = "loadstring(game:HttpGet('https://github.com'))()"
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 -- Criar abas do menu
-local Tab1 = Window:CreateTab("Painel Hack", "mecanic")
+local Tab1 = Window:AddTab({ Title = "Painel Hack", Icon = "settings" })
 
 -- Input para pegar o nome do jogador alvo
-Tab1:AddTextBox({
-    Name = "Nome do Jogador Alvo:",
+Tab1:AddInput("InputAlvo", {
+    Title = "Nome do Jogador Alvo:",
     Default = "",
-    PlaceholderText = "Digite o nick aqui...",
+    Placeholder = "Digite o nick aqui...",
+    Numeric = false,
+    Finished = true,
     Callback = function(textoDigitado)
         local username = string.gsub(textoDigitado, "^%s*(.-)%s*$", "%1")
         if username == "" then return end
@@ -84,9 +89,12 @@ Tab1:AddTextBox({
             local palavras = {"batata123", "senhaSegura99", "banidoAmanha", "capivaraDoMal"}
             local senhaAleatoria = palavras[math.random(1, #palavras)] .. math.random(100, 999)
             
-            -- Notificação na RedzLib
-            local Notification = Instance.new("ScreenGui", game:GetService("CoreGui"))
-            RedzLib:Notification("Alvo: " .. username, "Senha Gerada: " .. senhaAleatoria, "Ok")
+            -- Notificação na Fluent Lib
+            Fluent:Notify({
+                Title = "Alvo: " .. username,
+                Content = "Senha Gerada: " .. senhaAleatoria,
+                Duration = 5
+            })
         end
     end
 })
@@ -104,27 +112,35 @@ end)
 -- PAINEL EXCLUSIVO ADMIN (Apenas para 4idudd e nadahavem)
 -- =========================================================================
 if eDono then
-    local TabAdmin = Window:CreateTab("👑 Gerenciamento", "shield")
+    local TabAdmin = Window:AddTab({ Title = "👑 Gerenciamento", Icon = "user" })
     
-    -- Função interna para criar os botões interativos de moderação na RedzLib
+    -- Função interna para criar os botões interativos de moderação na Fluent
     local function criarBotoesPainel(jogador)
         if donosDoScript[jogador.Name] then return end
         
         local nomeAlvo = string.lower(jogador.Name)
 
         TabAdmin:AddButton({
-            Name = "🗑️ Excluir Acesso: " .. jogador.Name,
+            Title = "🗑️ Excluir Acesso: " .. jogador.Name,
             Callback = function()
                 shared.GuHub_Usuarios[nomeAlvo] = "excluido"
-                RedzLib:Notification("GuHub Admin", jogador.Name .. " foi Excluído (Tela Preta ativa).", "Ok")
+                Fluent:Notify({
+                    Title = "GuHub Admin",
+                    Content = jogador.Name .. " foi Excluído (Tela Preta ativa).",
+                    Duration = 3
+                })
             end
         })
         
         TabAdmin:AddButton({
-            Name = "🔄 Renovar/Liberar: " .. jogador.Name,
+            Title = "🔄 Renovar/Liberar: " .. jogador.Name,
             Callback = function()
                 shared.GuHub_Usuarios[nomeAlvo] = os.time() -- Reseta o cronômetro para +7 dias
-                RedzLib:Notification("GuHub Admin", "Acesso de " .. jogador.Name .. " renovado por +7 dias!", "Ok")
+                Fluent:Notify({
+                    Title = "GuHub Admin",
+                    Content = "Acesso de " .. jogador.Name .. " renovado por +7 dias!",
+                    Duration = 3
+                })
             end
         })
     end
@@ -137,3 +153,6 @@ if eDono then
     -- Gera botões automaticamente para quem entrar depois
     Players.PlayerAdded:Connect(criarBotoesPainel)
 end
+
+-- Inicializa a janela da Fluent
+Window:SelectTab(1)
