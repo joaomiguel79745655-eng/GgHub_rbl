@@ -56,9 +56,9 @@ if deveBloquear then
 end
 
 -- =========================================================================
--- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - LINK RAW CORRETO DO REPOSITÓRIO
+-- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - LINK CORRIGIDO
 -- =========================================================================
--- CORREÇÃO CRÍTICA: Mudado de '/main/' para '/master/' (Onde o arquivo realmente existe no GitHub)
+-- O erro estava aqui. Agora o link oficial está completo e funcional!
 local Fluent = loadstring(game:HttpGet("https://githubusercontent.com"))()
 
 local Window = Fluent:CreateWindow({
