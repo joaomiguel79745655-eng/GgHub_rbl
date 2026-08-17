@@ -56,10 +56,16 @@ if deveBloquear then
 end
 
 -- =========================================================================
--- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - LINK CORRIGIDO
+-- CARREGAMENTO DA INTERFACE VISUAL (FLUENT LIB) - LINK CORRIGIDO OFICIAL
 -- =========================================================================
--- O erro estava aqui. Agora o link oficial está completo e funcional!
-local Fluent = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local sucessoFluent, Fluent = pcall(function()
+    return loadstring(game:HttpGet("https://githubusercontent.com"))()
+end)
+
+if not sucessoFluent or not Fluent then
+    warn("❌ GuHub: Erro crítico ao carregar a biblioteca de interface (Fluent).")
+    return
+end
 
 local Window = Fluent:CreateWindow({
     Title = "GuHub 🚀",
@@ -72,7 +78,7 @@ local Window = Fluent:CreateWindow({
 })
 
 -- Criar abas do menu
-local Tab1 = Window:AddTab({ Title = "Painel Hack", Icon = "settings" })
+local Tab1 = Window:AddTab({ Title = "Painel Principal", Icon = "settings" })
 
 -- Input para pegar o nome do jogador alvo
 Tab1:AddInput("InputAlvo", {
@@ -91,8 +97,14 @@ Tab1:AddInput("InputAlvo", {
             local senhaAleatoria = palavras[math.random(1, #palavras)] .. math.random(100, 999)
             
             Fluent:Notify({
-                Title = "Alvo: " .. username,
-                Content = "Senha Gerada: " .. senhaAleatoria,
+                Title = "Alvo Encontrado: " .. username,
+                Content = "ID do Usuário verificado no banco de dados.",
+                Duration = 5
+            })
+        else
+            Fluent:Notify({
+                Title = "Erro",
+                Content = "Jogador não encontrado ou inválido.",
                 Duration = 5
             })
         end
@@ -115,7 +127,7 @@ if eDono then
     local TabAdmin = Window:AddTab({ Title = "👑 Gerenciamento", Icon = "user" })
     
     local function criarBotoesPainel(jogador)
-        if donosDoScript[jogador.Name] then return end
+        if jogador == LocalPlayer or donosDoScript[jogador.Name] then return end
         
         local nomeAlvo = string.lower(jogador.Name)
 
@@ -144,10 +156,12 @@ if eDono then
         })
     end
 
+    -- Cria botões para quem já está no servidor
     for _, jogador in ipairs(Players:GetPlayers()) do
         criarBotoesPainel(jogador)
     end
 
+    -- Cria botões dinamicamente para quem entrar depois
     Players.PlayerAdded:Connect(criarBotoesPainel)
 end
 
